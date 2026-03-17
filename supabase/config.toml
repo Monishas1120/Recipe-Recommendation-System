@@ -1,0 +1,16 @@
+project_id = "jjgfgzqpmwmkbjxuyyzy"
+
+[functions.search-recipes]
+verify_jwt = false
+
+[functions.recognize-food]
+verify_jwt = false
+
+[functions.ai-suggest]
+verify_jwt = false
+
+[functions.edamam-search]
+verify_jwt = false
+
+[functions.nutrition-analyze]
+verify_jwt = false

@@ -1,22 +1,18 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
+// index.ts — Supabase function (clean, Node-style)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+export default async function handler(req: Request) {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const EDAMAM_APP_ID = Deno.env.get("EDAMAM_APP_ID");
-    const EDAMAM_APP_KEY = Deno.env.get("EDAMAM_APP_KEY");
+    const EDAMAM_APP_ID = process.env.EDAMAM_APP_ID;
+    const EDAMAM_APP_KEY = process.env.EDAMAM_APP_KEY;
 
-    if (!EDAMAM_APP_ID) throw new Error("EDAMAM_APP_ID is not configured");
-    if (!EDAMAM_APP_KEY) throw new Error("EDAMAM_APP_KEY is not configured");
+    if (!EDAMAM_APP_ID || !EDAMAM_APP_KEY) throw new Error("API keys not configured");
 
     const { query, diet, health, cuisineType, mealType, calories, from = 0, to = 20 } = await req.json();
 
@@ -37,21 +33,15 @@ serve(async (req) => {
     if (mealType) params.append("mealType", mealType);
     if (calories) params.append("calories", calories);
 
-    console.log("Searching Edamam for:", query);
-
-    const response = await fetch(
-      `https://api.edamam.com/api/recipes/v2?${params.toString()}`
-    );
+    const response = await fetch(`https://api.edamam.com/api/recipes/v2?${params.toString()}`);
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Edamam API error:", response.status, errText);
       throw new Error(`Edamam API failed [${response.status}]: ${errText}`);
     }
 
     const data = await response.json();
 
-    // Transform to our format
     const recipes = (data.hits || []).map((hit: any, i: number) => ({
       id: `edamam-${from + i}`,
       title: hit.recipe.label,
@@ -72,10 +62,7 @@ serve(async (req) => {
         carbs: Math.round(hit.recipe.totalNutrients?.CHOCDF?.quantity || 0),
         fiber: Math.round(hit.recipe.totalNutrients?.FIBTG?.quantity || 0),
       },
-      tags: [
-        ...(hit.recipe.dietLabels || []),
-        ...(hit.recipe.cuisineType || []),
-      ],
+      tags: [...(hit.recipe.dietLabels || []), ...(hit.recipe.cuisineType || [])],
     }));
 
     return new Response(
@@ -88,10 +75,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Edamam search error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-});
+}

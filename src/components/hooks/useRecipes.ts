@@ -1,30 +1,21 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface Recipe {
   id: string;
   title: string;
-  description: string | null;
   image: string;
+  ingredients: string[];
+  instructions: string[];
   time: string;
   servings: number;
   calories: number;
   category: string;
   difficulty: string;
-  ingredients: string[];
-  instructions: string[];
+  description: string | null;
   cuisine: string | null;
   tags: string[];
   created_at: string;
   updated_at: string;
-  isFavorite?: boolean;
-}
-
-interface SearchParams {
-  query?: string;
-  category?: string;
-  difficulty?: string;
-  limit?: number;
 }
 
 export function useRecipes() {
@@ -32,37 +23,65 @@ export function useRecipes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const searchRecipes = useCallback(async (params: SearchParams = {}) => {
+  const searchRecipes = useCallback(async (ingredients: string[] = []) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const { data, error: fetchError } = await supabase.functions.invoke("search-recipes", {
-        body: params,
-      });
+      const query =
+        ingredients.length > 0 ? ingredients.join(",") : "chicken";
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      const res = await fetch(
+        `https://api.edamam.com/api/recipes/v2?type=public&q=${encodeURIComponent(
+          query
+        )}&app_id=00db35c1&app_key=acf203c49e1aafe6f8af9d9fc`,
+        {
+          headers: {
+            "Edamam-Account-User": "monisha",
+          },
+        }
+      );
 
-      setRecipes(data.recipes || []);
-      return data.recipes || [];
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+
+      const data = await res.json();
+
+      const recipesData =
+        data?.hits?.map((item: any, i: number) => ({
+          id: item.recipe.uri || `recipe-${i}`,
+          title: item.recipe.label,
+          image: item.recipe.image,
+          ingredients: item.recipe.ingredientLines || [],
+          instructions: [],
+          time: item.recipe.totalTime
+            ? `${item.recipe.totalTime} min`
+            : "N/A",
+          servings: item.recipe.yield || 1,
+          calories: Math.round(item.recipe.calories || 0),
+          category: "food",
+          difficulty: "medium",
+          description: null,
+          cuisine: item.recipe.cuisineType?.[0] || null,
+          tags: item.recipe.dishType || [],
+          created_at: "",
+          updated_at: "",
+        })) || [];
+
+      setRecipes(recipesData);
+      return recipesData;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to search recipes";
-      setError(message);
-      console.error("Search error:", err);
+      console.error("Recipe fetch error:", err);
+      setError("Failed to fetch recipes");
+      setRecipes([]);
       return [];
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const fetchAllRecipes = useCallback(async (limit = 50) => {
-    return searchRecipes({ limit });
-  }, [searchRecipes]);
-
-  const fetchByCategory = useCallback(async (category: string) => {
-    return searchRecipes({ category, limit: 50 });
+  // ✅ ADD THIS FUNCTION (THIS FIXES YOUR ERROR)
+  const fetchAllRecipes = useCallback(async () => {
+    return searchRecipes(); // default = "chicken"
   }, [searchRecipes]);
 
   return {
@@ -70,7 +89,6 @@ export function useRecipes() {
     loading,
     error,
     searchRecipes,
-    fetchAllRecipes,
-    fetchByCategory,
+    fetchAllRecipes, // ✅ IMPORTANT
   };
 }

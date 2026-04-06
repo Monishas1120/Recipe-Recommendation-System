@@ -20,12 +20,16 @@ export function SearchBar({
   showResults = true,
   className = ""
 }: SearchBarProps) {
+
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [aiResults, setAiResults] = useState<string[]>([]); // ✅ AI state
+
   const { recipes, loading, searchRecipes } = useRecipes();
   const debouncedQuery = useDebounce(query, 300);
   const navigate = useNavigate();
 
+  // 🔍 Search from your existing system
   useEffect(() => {
     if (debouncedQuery.length >= 2) {
       searchRecipes({ query: debouncedQuery, limit: 6 });
@@ -41,18 +45,40 @@ export function SearchBar({
     }
   }, [recipes, onSearch]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  // 🤖 Python AI call
+  const getAIRecommendations = async (query: string) => {
+    try {
+      const res = await fetch("http://localhost:8000/recommend", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: query }),
+      });
+
+      const data = await res.json();
+      setAiResults(data.recommendations || []);
+    } catch (err) {
+      console.error("AI error:", err);
+    }
+  };
+
+  // 🔍 Submit
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (query.trim()) {
+      await getAIRecommendations(query); // ✅ AI call
       navigate(`/categories?search=${encodeURIComponent(query.trim())}`);
       setShowDropdown(false);
     }
   }, [query, navigate]);
 
+  // 👉 Click result
   const handleResultClick = useCallback((recipeId: string) => {
     setShowDropdown(false);
     setQuery("");
-    navigate(`/categories?id=${recipeId}`);
+    navigate(`/recipe?id=${recipeId}`); // ✅ FIXED route
   }, [navigate]);
 
   const clearQuery = useCallback(() => {
@@ -61,10 +87,13 @@ export function SearchBar({
   }, []);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative w-full ${className}`}>
+      
+      {/* SEARCH BAR */}
       <form onSubmit={handleSubmit}>
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -73,6 +102,7 @@ export function SearchBar({
             onFocus={() => query.length >= 2 && setShowDropdown(true)}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
           />
+
           {query && (
             <button
               type="button"
@@ -82,6 +112,7 @@ export function SearchBar({
               <X className="w-4 h-4" />
             </button>
           )}
+
           <Button 
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-hero hover:opacity-90 rounded-xl"
@@ -92,14 +123,14 @@ export function SearchBar({
         </div>
       </form>
 
-      {/* Dropdown Results */}
+      {/* 🔽 DROPDOWN RESULTS (SCROLL FIXED) */}
       <AnimatePresence>
         {showResults && showDropdown && recipes.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-strong border border-border overflow-hidden z-50"
+            className="absolute top-full left-0 right-0 mt-2 bg-card rounded-xl shadow-strong border border-border z-50 max-h-72 overflow-y-auto"
           >
             <div className="p-2">
               {recipes.map((recipe) => (
@@ -122,6 +153,7 @@ export function SearchBar({
                 </button>
               ))}
             </div>
+
             <div className="border-t border-border p-2">
               <button
                 onClick={handleSubmit}
@@ -133,6 +165,19 @@ export function SearchBar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 🤖 AI RESULTS */}
+      {aiResults.length > 0 && (
+        <div className="mt-4 bg-muted p-4 rounded-xl">
+          <h3 className="font-semibold mb-2">AI Suggestions 🤖</h3>
+          <ul className="list-disc list-inside">
+            {aiResults.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
     </div>
   );
 }

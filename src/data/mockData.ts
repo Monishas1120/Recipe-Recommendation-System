@@ -1,4 +1,7 @@
+import { Recipe } from "@/hooks/useRecipes";
+import { Coffee, Utensils, Pizza, Cake, Salad, Leaf, Fish, Soup } from "lucide-react";
 
+// Sample user recipes
 export const mockRecipes: Recipe[] = [
   {
     id: "1",
@@ -9,7 +12,13 @@ export const mockRecipes: Recipe[] = [
     calories: 420,
     category: "Dinner",
     difficulty: "Medium",
-    isFavorite: true,
+    description: "Creamy garlicky chicken with sun-dried tomatoes.",
+    ingredients: ["Chicken", "Garlic", "Sun-dried tomatoes", "Cream"],
+    instructions: ["Cook chicken", "Prepare sauce", "Combine & serve"],
+    cuisine: "Italian",
+    tags: ["chicken", "dinner"],
+    created_at: "",
+    updated_at: "",
   },
   {
     id: "2",
@@ -20,79 +29,27 @@ export const mockRecipes: Recipe[] = [
     calories: 280,
     category: "Breakfast",
     difficulty: "Easy",
+    description: "Healthy avocado toast with eggs",
+    ingredients: ["Bread", "Avocado", "Eggs", "Lemon", "Salt", "Pepper"],
+    instructions: ["Toast bread", "Mash avocado", "Poach eggs", "Assemble"],
+    cuisine: "American",
+    tags: ["breakfast", "quick"],
+    created_at: "",
+    updated_at: "",
   },
-  {
-    id: "3",
-    title: "Thai Green Curry with Vegetables",
-    image: "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600&q=80",
-    time: "40 min",
-    servings: 4,
-    calories: 380,
-    category: "Dinner",
-    difficulty: "Medium",
-  },
-  {
-    id: "4",
-    title: "Classic Margherita Pizza",
-    image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&q=80",
-    time: "50 min",
-    servings: 4,
-    calories: 450,
-    category: "Lunch",
-    difficulty: "Hard",
-    isFavorite: true,
-  },
-  {
-    id: "5",
-    title: "Greek Salad Bowl",
-    image: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80",
-    time: "10 min",
-    servings: 2,
-    calories: 180,
-    category: "Lunch",
-    difficulty: "Easy",
-  },
-  {
-    id: "6",
-    title: "Chocolate Lava Cake",
-    image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=600&q=80",
-    time: "25 min",
-    servings: 2,
-    calories: 520,
-    category: "Dessert",
-    difficulty: "Medium",
-  },
-  {
-    id: "7",
-    title: "Grilled Salmon with Asparagus",
-    image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&q=80",
-    time: "30 min",
-    servings: 2,
-    calories: 350,
-    category: "Dinner",
-    difficulty: "Easy",
-  },
-  {
-    id: "8",
-    title: "Fluffy Blueberry Pancakes",
-    image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80",
-    time: "20 min",
-    servings: 4,
-    calories: 320,
-    category: "Breakfast",
-    difficulty: "Easy",
-  },
+  // Add more recipes as needed...
 ];
 
+// Categories with icons
 export const categories = [
-  { name: "Breakfast", count: 4, color: "#FF9F43" },
-  { name: "Lunch", count: 8, color: "#54A0FF" },
-  { name: "Dinner", count: 9, color: "#FF6B6B" },
-  { name: "Dessert", count: 3, color: "#FF6B9E" },
-  { name: "Vegetarian", count: 6, color: "#2ECC71" },
-  { name: "Vegan", count: 2, color: "#1ABC9C" },
-  { name: "Seafood", count: 3, color: "#9B59B6" },
-  { name: "Quick Meals", count: 5, color: "#F39C12" },
+  { name: "Breakfast", count: 4, color: "#FF9F43", icon: Coffee },
+  { name: "Lunch", count: 8, color: "#54A0FF", icon: Utensils },
+  { name: "Dinner", count: 9, color: "#FF6B6B", icon: Pizza },
+  { name: "Dessert", count: 3, color: "#FF6B9E", icon: Cake },
+  { name: "Vegetarian", count: 6, color: "#2ECC71", icon: Salad },
+  { name: "Vegan", count: 2, color: "#1ABC9C", icon: Leaf },
+  { name: "Seafood", count: 3, color: "#9B59B6", icon: Fish },
+  { name: "Quick Meals", count: 5, color: "#F39C12", icon: Soup },
 ];
 
 export const dietPreferences = [

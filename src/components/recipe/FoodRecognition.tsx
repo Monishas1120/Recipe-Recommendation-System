@@ -2,7 +2,13 @@ import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Upload, X, Loader2, Sparkles, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useFoodRecognition } from "@/hooks/useFoodRecognition";
 import { RecipeCard } from "./RecipeCard";
 
@@ -10,33 +16,43 @@ export function FoodRecognition() {
   const [open, setOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { loading, error, result, recognizeFood, clearResult } = useFoodRecognition();
 
-  const handleFileSelect = useCallback(async (file: File) => {
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setPreviewUrl(base64);
-      await recognizeFood(base64);
-    };
-    reader.readAsDataURL(file);
-  }, [recognizeFood]);
+  const { loading, error, result, recognizeFood, clearResult } =
+    useFoodRecognition();
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      handleFileSelect(file);
-    }
-  }, [handleFileSelect]);
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        setPreviewUrl(base64);
+        await recognizeFood(base64);
+      };
+      reader.readAsDataURL(file);
+    },
+    [recognizeFood]
+  );
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  }, [handleFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith("image/")) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect]
+  );
+
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect]
+  );
 
   const reset = useCallback(() => {
     setPreviewUrl(null);
@@ -59,6 +75,7 @@ export function FoodRecognition() {
           Scan Food
         </Button>
       </DialogTrigger>
+
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -82,27 +99,33 @@ export function FoodRecognition() {
                 onChange={handleFileInput}
                 className="hidden"
               />
+
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Upload className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="font-display text-lg font-semibold text-foreground mb-2">
+
+              <h3 className="font-display text-lg font-semibold mb-2">
                 Upload a food image
               </h3>
+
               <p className="text-muted-foreground text-sm mb-4">
                 Drag and drop or click to select
               </p>
+
               <p className="text-xs text-muted-foreground">
                 Supports JPG, PNG, WEBP
               </p>
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Image Preview */}
               <div className="relative">
                 <img
                   src={previewUrl}
                   alt="Uploaded food"
                   className="w-full h-64 object-cover rounded-2xl"
                 />
+
                 <Button
                   variant="secondary"
                   size="icon"
@@ -111,16 +134,20 @@ export function FoodRecognition() {
                 >
                   <X className="w-4 h-4" />
                 </Button>
+
                 {loading && (
                   <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-2xl flex items-center justify-center">
                     <div className="text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Analyzing your food...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Analyzing your food...
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
+              {/* Error */}
               {error && (
                 <div className="bg-destructive/10 text-destructive rounded-xl p-4 text-sm">
                   {error}
@@ -134,32 +161,38 @@ export function FoodRecognition() {
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                   >
-                    {/* Analysis Result */}
+                    {/* Analysis */}
                     <div className="bg-primary/5 rounded-2xl p-6">
-                      <div className="flex items-center gap-3 mb-4">
+                      <div className="flex gap-3 mb-4">
                         <div className="w-10 h-10 rounded-full bg-gradient-hero flex items-center justify-center">
-                          <ChefHat className="w-5 h-5 text-primary-foreground" />
+                          <ChefHat className="w-5 h-5 text-white" />
                         </div>
+
                         <div>
-                          <h4 className="font-display font-semibold text-foreground">
+                          <h4 className="font-semibold">
                             {result.analysis.dishName}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {result.analysis.cuisine} • {result.analysis.category}
+                            {result.analysis.cuisine} •{" "}
+                            {result.analysis.category}
                           </p>
                         </div>
                       </div>
 
+                      {/* Ingredients */}
                       {result.analysis.ingredients.length > 0 && (
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium text-foreground mb-2">Detected Ingredients:</h5>
+                        <div>
+                          <h5 className="text-sm font-medium mb-2">
+                            Detected Ingredients:
+                          </h5>
+
                           <div className="flex flex-wrap gap-2">
-                            {result.analysis.ingredients.map((ingredient, i) => (
+                            {result.analysis.ingredients.map((ing, i) => (
                               <span
                                 key={i}
-                                className="px-3 py-1 bg-background rounded-full text-xs text-muted-foreground"
+                                className="px-3 py-1 bg-background rounded-full text-xs"
                               >
-                                {ingredient}
+                                {ing}
                               </span>
                             ))}
                           </div>
@@ -167,16 +200,34 @@ export function FoodRecognition() {
                       )}
                     </div>
 
-                    {/* Related Recipes */}
+                    {/* Recipes */}
                     {result.recipes.length > 0 && (
                       <div>
-                        <h4 className="font-display text-lg font-semibold text-foreground mb-4">
+                        <h4 className="text-lg font-semibold mb-4">
                           Similar Recipes
                         </h4>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {result.recipes.slice(0, 4).map((recipe) => (
-                            <RecipeCard key={recipe.id} recipe={recipe} compact />
-                          ))}
+                          {result.recipes
+                            .slice(0, 4)
+                            .map((recipe: any, index: number) => {
+                              // ✅ FIX: ensure uri exists
+                              const fixedRecipe = {
+                                ...recipe,
+                                uri:
+                                  recipe.uri ||
+                                  recipe.id ||
+                                  `temp-${index}`,
+                              };
+
+                              return (
+                                <RecipeCard
+                                  key={fixedRecipe.uri}
+                                  recipe={fixedRecipe}
+                                  compact
+                                />
+                              );
+                            })}
                         </div>
                       </div>
                     )}

@@ -64,14 +64,3 @@ npm run dev
 * Mobile responsiveness improvements
 * Recipe upload feature
 
----
-
-## 👩‍💻 Author
-
-**Monisha S**
-
----
-
-## ⭐ If you like this project
-
-Give it a star on GitHub!

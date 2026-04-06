@@ -22,10 +22,14 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
+    /* Path Alias */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["src/*"]
+    },
+
+    /* Fix for deprecation warning */
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src"]
 }

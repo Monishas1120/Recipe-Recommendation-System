@@ -18,16 +18,16 @@ export function AISuggestionPopup() {
   const { suggestion, loading, fetchSuggestion, dismiss } = useAISuggestion();
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    // Show popup after a delay when user is on the page
-    const timer = setTimeout(() => {
-      fetchSuggestion().then((data) => {
-        if (data) setVisible(true);
-      });
-    }, 3000);
+ useEffect(() => {
+  const timer = setTimeout(() => {
+    // ❌ disable API call
+    // fetchSuggestion().then((data) => {
+    //   if (data) setVisible(true);
+    // });
+  }, 3000);
 
-    return () => clearTimeout(timer);
-  }, [fetchSuggestion]);
+  return () => clearTimeout(timer);
+}, []);
 
   const handleDismiss = () => {
     setVisible(false);

@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { Layout } from "@/components/layout/Layout";
+import { Layout } from "../components/layout/Layout";
 import { useRecipes } from "@/hooks/useRecipes";
 
 export default function RecipePage() {

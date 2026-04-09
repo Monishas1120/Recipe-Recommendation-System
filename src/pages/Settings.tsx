@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon,
@@ -13,23 +13,56 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { Layout } from "@/components/layout/Layout";
+import { Layout } from "../components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { dietPreferences, healthGoals } from "@/data/mockData";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Settings = () => {
-  const [selectedDiets, setSelectedDiets] = useState<string[]>(["vegetarian"]);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(["weightLoss"]);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [notifications, setNotifications] = useState({
     newRecipes: true,
     weeklyDigest: true,
     cookingReminders: false,
     achievements: true,
   });
+  const [saving, setSaving] = useState(false);
+
+  // ✅ LOAD USER DATA FROM SUPABASE
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("diet, goals")
+        .eq("id", user.id)
+        .single();
+
+      if (data) {
+        setSelectedDiets(data.diet || []);
+        setSelectedGoals(data.goals || []);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const toggleDiet = (id: string) => {
     setSelectedDiets((prev) =>
@@ -41,6 +74,34 @@ const Settings = () => {
     setSelectedGoals((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]
     );
+  };
+
+  // ✅ SAVE TO SUPABASE
+  const savePreferences = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { data, error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      diet: selectedDiets,
+      goals: selectedGoals,
+    }, { onConflict: 'id' });
+
+    console.log('Upsert response:', { data, error });
+
+    if (error) {
+      toast.error("Failed to save: " + error.message);
+    } else if (!data) {
+      toast.error("No data returned. Preferences may not have been saved.");
+    } else {
+      toast.success("Preferences saved ✅");
+    }
+    setSaving(false);
+  };
+
+  // ✅ SIGN OUT FIX
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
   };
 
   return (
@@ -69,282 +130,128 @@ const Settings = () => {
 
         <Tabs defaultValue="diet" className="space-y-8">
           <TabsList className="grid w-full grid-cols-4 h-14 rounded-xl bg-muted p-1">
-            <TabsTrigger value="diet" className="rounded-lg data-[state=active]:bg-background">
-              <Heart className="w-4 h-4 mr-2" />
-              Diet
-            </TabsTrigger>
-            <TabsTrigger value="health" className="rounded-lg data-[state=active]:bg-background">
-              <Shield className="w-4 h-4 mr-2" />
-              Health
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="rounded-lg data-[state=active]:bg-background">
-              <Bell className="w-4 h-4 mr-2" />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="rounded-lg data-[state=active]:bg-background">
-              <User className="w-4 h-4 mr-2" />
-              Admin
-            </TabsTrigger>
+            <TabsTrigger value="diet">Diet</TabsTrigger>
+            <TabsTrigger value="health">Health</TabsTrigger>
+            <TabsTrigger value="notifications">Alerts</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
           </TabsList>
 
-          {/* Diet Preferences */}
+          {/* DIET */}
           <TabsContent value="diet">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="font-display text-2xl">
-                    Diet Preferences
-                  </CardTitle>
-                  <CardDescription>
-                    Select your dietary preferences to get personalized recipe recommendations
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {dietPreferences.map((diet) => (
-                      <button
-                        key={diet.id}
-                        onClick={() => toggleDiet(diet.id)}
-                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                          selectedDiets.includes(diet.id)
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        <div className="text-left">
-                          <div className="font-semibold text-foreground">
-                            {diet.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {diet.description}
-                          </div>
-                        </div>
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            selectedDiets.includes(diet.id)
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          {selectedDiets.includes(diet.id) && (
-                            <Check className="w-4 h-4" />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <Button className="mt-6 bg-gradient-hero hover:opacity-90">
-                    Save Preferences
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* Health Goals */}
-          <TabsContent value="health">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="font-display text-2xl">
-                    Health Goals
-                  </CardTitle>
-                  <CardDescription>
-                    Set your health goals to receive recipes that support your journey
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {healthGoals.map((goal) => (
-                      <button
-                        key={goal.id}
-                        onClick={() => toggleGoal(goal.id)}
-                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                          selectedGoals.includes(goal.id)
-                            ? "border-sage bg-sage/5"
-                            : "border-border hover:border-sage/50"
-                        }`}
-                      >
-                        <span className="text-3xl">{goal.icon}</span>
-                        <span className="font-semibold text-foreground">
-                          {goal.name}
-                        </span>
-                        {selectedGoals.includes(goal.id) && (
-                          <Check className="w-5 h-5 text-sage ml-auto" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mt-8 p-6 bg-muted rounded-xl">
-                    <h3 className="font-semibold text-foreground mb-4">
-                      Daily Nutrition Targets
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {[
-                        { label: "Calories", value: "2000", unit: "kcal" },
-                        { label: "Protein", value: "50", unit: "g" },
-                        { label: "Carbs", value: "250", unit: "g" },
-                        { label: "Fat", value: "65", unit: "g" },
-                      ].map((target) => (
-                        <div
-                          key={target.label}
-                          className="bg-background p-4 rounded-xl text-center"
-                        >
-                          <div className="text-2xl font-bold text-primary">
-                            {target.value}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {target.unit}
-                          </div>
-                          <div className="text-sm font-medium text-foreground mt-1">
-                            {target.label}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button className="mt-6 bg-gradient-hero hover:opacity-90">
-                    Update Goals
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* Notifications */}
-          <TabsContent value="notifications">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="font-display text-2xl">
-                    Notifications
-                  </CardTitle>
-                  <CardDescription>
-                    Choose how you want to be notified about updates
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {[
-                    {
-                      key: "newRecipes",
-                      title: "New Recipe Recommendations",
-                      description: "Get notified when we find recipes you might like",
-                    },
-                    {
-                      key: "weeklyDigest",
-                      title: "Weekly Digest",
-                      description: "Receive a weekly summary of trending recipes",
-                    },
-                    {
-                      key: "cookingReminders",
-                      title: "Cooking Reminders",
-                      description: "Remind you to cook saved recipes",
-                    },
-                    {
-                      key: "achievements",
-                      title: "Achievements",
-                      description: "Celebrate your cooking milestones",
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.key}
-                      className="flex items-center justify-between p-4 bg-muted rounded-xl"
-                    >
-                      <div>
-                        <div className="font-semibold text-foreground">
-                          {item.title}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {item.description}
-                        </div>
-                      </div>
-                      <Switch
-                        checked={notifications[item.key as keyof typeof notifications]}
-                        onCheckedChange={(checked) =>
-                          setNotifications((prev) => ({
-                            ...prev,
-                            [item.key]: checked,
-                          }))
-                        }
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* Admin Panel */}
-          <TabsContent value="admin">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <Card className="shadow-soft">
-                <CardHeader>
-                  <CardTitle className="font-display text-2xl">
-                    Admin Panel
-                  </CardTitle>
-                  <CardDescription>
-                    Manage your account and app settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {[
-                    { icon: User, label: "Profile Settings", action: "Edit" },
-                    { icon: Shield, label: "Privacy & Security", action: "Manage" },
-                    { icon: Palette, label: "Appearance", action: "Customize" },
-                    { icon: HelpCircle, label: "Help & Support", action: "View" },
-                  ].map((item) => (
+            <Card>
+              <CardHeader>
+                <CardTitle>Diet Preferences</CardTitle>
+                <CardDescription>Select your diet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {dietPreferences.map((diet) => (
                     <button
-                      key={item.label}
-                      className="flex items-center justify-between w-full p-4 rounded-xl hover:bg-muted transition-colors"
+                      key={diet.id}
+                      onClick={() => toggleDiet(diet.id)}
+                      className={`p-4 rounded-xl border-2 ${
+                        selectedDiets.includes(diet.id)
+                          ? "border-primary bg-primary/5"
+                          : "border-border"
+                      }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <item.icon className="w-5 h-5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">
-                          {item.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span className="text-sm">{item.action}</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </div>
+                      {diet.name}
                     </button>
                   ))}
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="shadow-soft border-destructive/20">
-                <CardHeader>
-                  <CardTitle className="font-display text-xl text-destructive">
-                    Danger Zone
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button variant="outline" className="w-full justify-start text-destructive hover:bg-destructive/10">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-destructive hover:bg-destructive/10">
-                    <X className="w-4 h-4 mr-2" />
-                    Delete Account
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+                <Button
+                  onClick={savePreferences}
+                  className="mt-6 bg-gradient-hero"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save Preferences"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* HEALTH */}
+          <TabsContent value="health">
+            <Card>
+              <CardHeader>
+                <CardTitle>Health Goals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {healthGoals.map((goal) => (
+                    <button
+                      key={goal.id}
+                      onClick={() => toggleGoal(goal.id)}
+                      className={`p-4 rounded-xl border-2 ${
+                        selectedGoals.includes(goal.id)
+                          ? "border-sage bg-sage/5"
+                          : "border-border"
+                      }`}
+                    >
+                      {goal.name}
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={savePreferences}
+                  className="mt-6 bg-gradient-hero"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save Goals"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* NOTIFICATIONS */}
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.keys(notifications).map((key) => (
+                  <div
+                    key={key}
+                    className="flex justify-between p-4 bg-muted rounded-xl"
+                  >
+                    <span>{key}</span>
+                    <Switch
+                      checked={
+                        notifications[key as keyof typeof notifications]
+                      }
+                      onCheckedChange={(val) =>
+                        setNotifications((prev) => ({
+                          ...prev,
+                          [key]: val,
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ADMIN */}
+          <TabsContent value="admin">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleSignOut}
+                  className="w-full justify-start"
+                  variant="outline"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

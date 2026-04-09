@@ -1,18 +1,20 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // adjust path if needed
 import { Recipe } from "./useRecipes";
 
-interface FoodAnalysis {
+export interface FoodAnalysis {
   dishName: string;
   ingredients: string[];
   cuisine: string;
   category: string;
-  searchTerms: string[];
+  searchTerms?: string[];
 }
 
-interface RecognitionResult {
+export interface RecognitionResult {
   analysis: FoodAnalysis;
+  recipe: object;
   recipes: Recipe[];
+  confidence: number;
 }
 
 export function useFoodRecognition() {
@@ -26,24 +28,34 @@ export function useFoodRecognition() {
     setResult(null);
 
     try {
-      const { data, error: fetchError } = await supabase.functions.invoke("recognize-food", {
-        body: { imageBase64 },
-      });
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "recognize-food",
+        {
+          body: { imageBase64 },
+        }
+      );
 
-      if (fetchError) {
-        throw fetchError;
-      }
+      if (fnError) throw fnError;
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      const safeResult: RecognitionResult = {
+        analysis: {
+          dishName: data?.analysis?.dishName || "Unknown Dish",
+          cuisine: data?.analysis?.cuisine || "Unknown",
+          category: data?.analysis?.category || "General",
+          ingredients: data?.analysis?.ingredients || [],
+          searchTerms: data?.analysis?.searchTerms || [],
+        },
+        recipe: data?.recipe || {},
+        recipes: data?.recipes || [],
+        confidence: data?.confidence ?? 0.9,
+      };
 
-      setResult(data);
-      return data;
+      setResult(safeResult);
+      return safeResult;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to recognize food";
-      setError(message);
+      const message = err instanceof Error ? err.message : "Recognition failed";
       console.error("Recognition error:", err);
+      setError(message);
       return null;
     } finally {
       setLoading(false);
@@ -55,11 +67,5 @@ export function useFoodRecognition() {
     setError(null);
   }, []);
 
-  return {
-    loading,
-    error,
-    result,
-    recognizeFood,
-    clearResult,
-  };
+  return { loading, error, result, recognizeFood, clearResult };
 }

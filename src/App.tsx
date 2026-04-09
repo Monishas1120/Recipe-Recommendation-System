@@ -14,6 +14,7 @@ import Settings from "./pages/Settings";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 
 import { AISuggestionPopup } from "@/components/gamification/AISuggestionPopup";
 
@@ -43,6 +44,7 @@ const App = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/profile" element={<Profile />} />
 
             {/* ❌ 404 Page */}
             <Route path="*" element={<NotFound />} />

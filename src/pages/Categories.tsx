@@ -16,6 +16,9 @@ import {
 import { useRecipes } from "@/hooks/useRecipes";
 import { categories } from "@/data/mockData";
 import { RecipeCard } from "@/components/recipe/RecipeCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function CategoriesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,6 +28,7 @@ export default function CategoriesPage() {
   const [sortBy, setSortBy] = useState("popular");
 
   const { recipes, loading, searchRecipes, fetchAllRecipes } = useRecipes();
+  const { user } = useAuth();
 
   // ✅ SYNC STATE WITH URL PARAMS
   useEffect(() => {
@@ -67,6 +71,36 @@ export default function CategoriesPage() {
     setSearchParams(
       value ? { search: value } : {}
     );
+  };
+
+  // Handler to add/remove favorite recipe name
+  const handleFavoriteToggle = async (recipeName: string) => {
+    if (!user) {
+      toast.error("You must be logged in to favorite recipes.");
+      return;
+    }
+    // Fetch current favorites row for user
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("id, recipe_names")
+      .eq("user_id", user.id)
+      .single();
+
+    let newRecipeNames: string[] = [];
+    if (data) {
+      // Toggle favorite
+      if (data.recipe_names.includes(recipeName)) {
+        newRecipeNames = data.recipe_names.filter((n: string) => n !== recipeName);
+      } else {
+        newRecipeNames = [...data.recipe_names, recipeName];
+      }
+      await supabase.from("favorites").update({ recipe_names: newRecipeNames }).eq("id", data.id);
+    } else {
+      // No row yet, create one
+      newRecipeNames = [recipeName];
+      await supabase.from("favorites").insert({ user_id: user.id, recipe_names: newRecipeNames });
+    }
+    toast.success("Favorites updated!");
   };
 
   return (
@@ -143,7 +177,7 @@ export default function CategoriesPage() {
             <p className="col-span-full text-center">Loading...</p>
           ) : (
             recipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
+              <RecipeCard key={recipe.id} recipe={recipe} onFavoriteToggle={handleFavoriteToggle} />
             ))
           )}
         </div>

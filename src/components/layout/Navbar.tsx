@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, Clock, Settings, Menu, X, ChefHat, Trophy, LogIn, LogOut, User } from "lucide-react";
+import { Search, Heart, Menu, X, ChefHat, Trophy, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,16 +11,20 @@ const navLinks = [
   { name: "Categories", path: "/categories" },
   { name: "Dashboard", path: "/dashboard" },
   { name: "Favorites", path: "/favorites" },
-  { name: "Settings", path: "/settings" },
+  // { name: "Settings", path: "/settings" },
+  // { name: "Profile", path: "/profile" },
 ];
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+
+  // ✅ include loading
+  const { user, signOut, loading } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +35,17 @@ export const Navbar = () => {
     }
   };
 
+  // ✅ FIX: proper logout with redirect
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <motion.div
@@ -86,6 +97,7 @@ export const Navbar = () => {
                 </motion.form>
               )}
             </AnimatePresence>
+
             <Button
               variant="ghost"
               size="icon"
@@ -94,34 +106,40 @@ export const Navbar = () => {
             >
               <Search className="w-5 h-5" />
             </Button>
+
             <Link to="/favorites">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-coral">
                 <Heart className="w-5 h-5" />
               </Button>
             </Link>
-            {user ? (
+
+            {/* ✅ FIX: prevent flicker */}
+            {!loading && user ? (
               <div className="flex items-center gap-2">
-                <Link to="/dashboard">
+                <Link to="/profile">
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-honey">
-                    <Trophy className="w-5 h-5" />
+                    <User className="w-5 h-5" />
                   </Button>
                 </Link>
+
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={signOut}
+                  onClick={handleLogout}
                   className="text-muted-foreground hover:text-destructive"
                 >
                   <LogOut className="w-5 h-5" />
                 </Button>
               </div>
             ) : (
-              <Link to="/auth">
-                <Button size="sm" className="bg-gradient-hero hover:opacity-90 gap-1.5">
-                  <LogIn className="w-4 h-4" />
-                  Sign In
-                </Button>
-              </Link>
+              !loading && (
+                <Link to="/auth">
+                  <Button size="sm" className="bg-gradient-hero hover:opacity-90 gap-1.5">
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Button>
+                </Link>
+              )
             )}
           </div>
 
@@ -154,6 +172,7 @@ export const Navbar = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </form>
+
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
@@ -168,6 +187,23 @@ export const Navbar = () => {
                     {link.name}
                   </Link>
                 ))}
+
+                {/* ✅ Mobile auth buttons */}
+                {!loading && user ? (
+                  <Button
+                    onClick={handleLogout}
+                    className="w-full mt-2 text-destructive"
+                    variant="outline"
+                  >
+                    Logout
+                  </Button>
+                ) : (
+                  !loading && (
+                    <Link to="/auth" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full mt-2">Sign In</Button>
+                    </Link>
+                  )
+                )}
               </div>
             </motion.div>
           )}
